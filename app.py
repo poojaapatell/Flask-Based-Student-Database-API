@@ -1,6 +1,10 @@
 import os
 from flask import Flask, request, jsonify
+from sqlalchemy.exc import SQLAlchemyError
 from models import db, Student  
+
+
+## add oAuth token feature
 
 app = Flask(__name__)
 
@@ -13,10 +17,18 @@ db.init_app(app)
 # Create tables before first request (if not already created)
 @app.before_request
 def create_tables():
-    if not os.path.exists('students.db'):
-        with app.app_context():
-            db.create_all()
-            print("DB CREATED")
+    try:
+        if not os.path.exists('students.db'):
+            with app.app_context():
+                db.create_all()
+                print("DB CREATED")
+    except SQLAlchemyError as e:
+        print(f"Error creating database tables: {str(e)}")
+        return jsonify({"error": "Database connection failed during initialization", "details": str(e)}), 500
+    except Exception as e:
+        print(f"Unexpected error: {str(e)}")
+        return jsonify({"error": "Unexpected error occurred during database initialization", "details": str(e)}), 500
+
 
 # 1. Get all students
 @app.route('/students', methods=['GET'])
